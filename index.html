@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <form id="productsForm">
+            <label>Selling Price: </label>
+            <input type="number" name="price" id="price">
+            <label>Product Name: </label>
+            <input type="text" name="pname" id="pname">
+            <label>Choose a category: </label>
+            <select name="category" id="category">
+                <option>Electronics</option>
+                <option>Food</option>
+                <option>Skin Care</option>
+            </select>
+            <button type="submit">Add Product</button>
+        </form>
+        <h2>Products</h2>
+        <h3>Electronic Items</h3>
+        <ul id="electronics"></ul>
+        <h3>Food Items</h3>
+        <ul id="food"></ul>
+        <h3>Skincare Items</h3>
+        <ul id="skincare"></ul>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.0/axios.min.js"></script>
+        <script>
+            document.getElementById('productsForm').addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const price = document.getElementById('price').value;
+                const name = document.getElementById('pname').value;
+                const category = document.getElementById('category').value;
+                const order = `${price} - ${name} - ${category}`;
+                const obj = { price, name, category };
+                try {
+                    const response = await postProduct(obj, category);
+                    handlePostSuccess(response.data, category);
+                } catch (err) {
+                    console.log(err);
+                }
+            });
+
+            async function postProduct(product, category) {
+                try {
+                    const response = await axios.post('https://crudcrud.com/api/0cd78984d25c4005bffe027de497bf7b/prodcutsList', product);
+                    return response;
+                } catch (err) {
+                    throw err;
+                }
+            }
+
+            function handlePostSuccess(data, category) {
+                if (category === 'Electronics') {
+                    electronicsList(data._id, data.price, data.name, data.category);
+                }
+                if (category === 'Food') {
+                    foodList(data._id, data.price, data.name, data.category);
+                }
+                if (category === 'Skin Care') {
+                    skincareList(data._id, data.price, data.name, data.category);
+                }
+
+                document.getElementById('price').value = '';
+                document.getElementById('pname').value = '';
+            }
+
+            async function fetchData(callback) {
+                try {
+                    const response = await axios.get('https://crudcrud.com/api/0cd78984d25c4005bffe027de497bf7b/prodcutsList');
+                    callback(response.data);
+                } catch (err) {
+                    console.log(err);
+                }
+            }
+
+            window.addEventListener("DOMContentLoaded", () => {
+                fetchData((data) => {
+                    data.forEach((product) => {
+                        if (product.category === 'Electronics') {
+                            electronicsList(product._id, product.price, product.name, product.category);
+                        }
+                        if (product.category === 'Food') {
+                            foodList(product._id, product.price, product.name, product.category);
+                        }
+                        if (product.category === 'Skin Care') {
+                            skincareList(product._id, product.price, product.name, product.category);
+                        }
+                    });
+                });
+            });
+
+            function deleteItem(event) {
+                const productToDelete = event.target.getAttribute('data-product');
+                axios.delete(`https://crudcrud.com/api/0cd78984d25c4005bffe027de497bf7b/prodcutsList/${productToDelete}`)
+                    .then(() => {
+                        event.target.parentElement.remove();
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    });
+            }
+
+            function editItem(event) {
+                const productToEdit = event.target.getAttribute('data-product');
+                axios.get(`https://crudcrud.com/api/0cd78984d25c4005bffe027de497bf7b/prodcutsList/${productToEdit}`)
+                    .then((response) => {
+                        const { price, name, category } = response.data;
+                        const priceInput = document.querySelector('input[name="price"]');
+                        const nameInput = document.querySelector('input[name="pname"]');
+                        const categorySelect = document.querySelector('select[name="category"]');
+                        priceInput.value = price;
+                        nameInput.value = name;
+                        categorySelect.value = category;
+
+                        deleteItem(event); // Remove the current item after populating form data
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    });
+            }
+
+            function createListElement(productId, price, name, category, parentElemId) {
+                let childElem = document.createElement('li');
+                childElem.innerHTML = `${price} - ${category} - ${name}
+                                       <button class="delete" data-product="${productId}">Delete Product</button>
+                                       <button class="edit" data-product="${productId}">Edit Product</button>`;
+                let parentElem = document.getElementById(parentElemId);
+                parentElem.appendChild(childElem);
+
+                const deleteButton = document.querySelectorAll('.delete');
+                deleteButton.forEach((button) => {
+                    button.addEventListener('click', deleteItem);
+                });
+
+                const editButton = document.querySelectorAll('.edit');
+                editButton.forEach((button) => {
+                    button.addEventListener('click', editItem);
+                });
+            }
+
+            function electronicsList(productId, price, name, category) {
+                createListElement(productId, price, name, category, 'electronics');
+            }
+
+            function foodList(productId, price, name, category) {
+                createListElement(productId, price, name, category, 'food');
+            }
+
+            function skincareList(productId, price, name, category) {
+                createListElement(productId, price, name, category, 'skincare');
+            }
+        </script>
+    </body>
+</html>
